@@ -11,8 +11,8 @@ const { rateLimit } = require("express-rate-limit")
 
 const configurePassport = require("./config/passport")
 
-app.use(cors())
 const app = express()
+app.use(cors())
 
 const userRouter = require("./routes/userRouter")
 const contentRouter = require("./routes/contentRouter")
