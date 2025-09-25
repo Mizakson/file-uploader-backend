@@ -5,9 +5,13 @@ const { PrismaSessionStore } = require("@quixo3/prisma-session-store")
 const passport = require("passport")
 const prisma = require("./prisma/prisma")
 const path = require("node:path")
+const cors = require("cors")
+
+const { rateLimit } = require("express-rate-limit")
 
 const configurePassport = require("./config/passport")
 
+app.use(cors())
 const app = express()
 
 const userRouter = require("./routes/userRouter")
@@ -40,9 +44,18 @@ app.use(passport.session())
 
 configurePassport()
 
-app.use(express.urlencoded({ extended: false }))
+app.use(express.urlencoded({ extended: true }))
 app.use(express.json())
 
+const limiter = rateLimit({
+    windowMs: 60 * 1000, // 1 min
+    limit: 100, // 100 requests per min 
+    standardHeaders: "draft-8",
+    legacyHeaders: false,
+    message: "request limit reached",
+})
+
+app.use(limiter)
 app.use((req, res, next) => {
     res.locals.currentUser = req.user
     next()
