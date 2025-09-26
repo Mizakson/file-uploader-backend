@@ -11,5 +11,8 @@ apiRouter.get("/logout", indexController.getLogout)
 apiRouter.get("/add-folder", indexController.getAddFolder)
 apiRouter.get("/content/folder/:folderId/upload-file", indexController.getUploadFile)
 apiRouter.get("/download/:fileId", indexController.getDownloadFile)
+apiRouter.get("/test", (req, res) => {
+    res.status(200).json({ message: "hello from file-uploader-backend api :)" })
+})
 
 module.exports = apiRouter
