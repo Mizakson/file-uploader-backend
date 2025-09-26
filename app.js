@@ -5,14 +5,14 @@ const { PrismaSessionStore } = require("@quixo3/prisma-session-store")
 const passport = require("passport")
 const prisma = require("./prisma/prisma")
 const path = require("node:path")
-// const cors = require("cors")
+const cors = require("cors")
 
 const { rateLimit } = require("express-rate-limit")
 
 const configurePassport = require("./config/passport")
 
 const app = express()
-// app.use(cors())
+app.use(cors())
 
 const userRouter = require("./routes/userRouter")
 const contentRouter = require("./routes/contentRouter")
