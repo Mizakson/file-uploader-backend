@@ -12,6 +12,7 @@ apiRouter.get("/add-folder", indexController.getAddFolder)
 apiRouter.get("/content/folder/:folderId/upload-file", indexController.getUploadFile)
 apiRouter.get("/download/:fileId", indexController.getDownloadFile)
 apiRouter.get("/test", (req, res) => {
+    res.setHeader('Content-Type', 'application/json')
     res.status(200).json({ message: "hello from file-uploader-backend api :)" })
 })
 
