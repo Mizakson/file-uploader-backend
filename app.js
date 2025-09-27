@@ -44,9 +44,9 @@ app.use(
         cookie: {
             maxAge: 730 * 24 * 60 * 60 * 1000, // ms
             secure: isSecure,
-            sameSite: isSecure ? 'none' : 'lax',
+            sameSite: isSecure ? 'none' : false,
         },
-        secret: "lorem ipsum",
+        secret: process.env.SESSION_SECRET,
         resave: true,
         saveUninitialized: false,
         store: new PrismaSessionStore(
