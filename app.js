@@ -17,7 +17,7 @@ const app = express()
 app.use(cors({
     origin: allowedOrigin,
     credentials: true,
-    methods: 'GET,HEAD,PUT,PATCH,POST,DELETE',
+    methods: ['GET', 'HEAD', 'PUT', 'PATCH', 'POST', 'DELETE'],
     allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With', 'Accept'],
 }))
 
@@ -40,8 +40,8 @@ app.use(
     session({
         cookie: {
             maxAge: 730 * 24 * 60 * 60 * 1000, // ms
-            secure: process.env.NODE_ENV === 'production',
-            sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax'
+            secure: true,
+            sameSite: 'none',
         },
         secret: "lorem ipsum",
         resave: true,
