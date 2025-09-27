@@ -14,14 +14,10 @@ const configurePassport = require("./config/passport")
 const app = express()
 
 const allowedOrigin = "http://localhost:5173"
-const isSecure = (req) => {
-    return req.protocol === 'https' || req.get('x-forwarded-proto') === 'https';
-}
 
 app.use(cors({
     origin: allowedOrigin,
     credentials: true,
-    methods: ['GET', 'HEAD', 'PUT', 'PATCH', 'POST', 'DELETE'],
 }))
 
 // app.use(function (req, res, next) {
@@ -44,9 +40,9 @@ app.use(
         cookie: {
             maxAge: 730 * 24 * 60 * 60 * 1000, // ms
             secure: false,
-            sameSite: isSecure ? 'none' : 'lax',
+            sameSite: 'none',
         },
-        secret: process.env.SESSION_SECRET,
+        secret: process.env.SESSION_SECRET || "lorem ipsum",
         resave: true,
         saveUninitialized: false,
         store: new PrismaSessionStore(
