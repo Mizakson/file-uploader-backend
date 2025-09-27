@@ -3,7 +3,7 @@ const apiRouter = Router()
 
 const indexController = require("../controllers/indexController")
 
-apiRouter.get("/", indexController.getIndex)
+apiRouter.get("/current-user", indexController.getIndex)
 apiRouter.get("/sign-up", indexController.getSignUp)
 apiRouter.get("/login", indexController.getLogin)
 apiRouter.post("/login", indexController.postLogin)
