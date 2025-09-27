@@ -12,6 +12,7 @@ const { rateLimit } = require("express-rate-limit")
 const configurePassport = require("./config/passport")
 
 const allowedOrigin = "http://localhost:5173"
+const isProduction = process.env.NODE_ENV === 'production'
 
 const app = express()
 app.use(cors({
@@ -40,8 +41,8 @@ app.use(
     session({
         cookie: {
             maxAge: 730 * 24 * 60 * 60 * 1000, // ms
-            secure: true,
-            sameSite: 'none',
+            secure: isProduction,
+            sameSite: isProduction ? 'none' : 'lax',
         },
         secret: "lorem ipsum",
         resave: true,
