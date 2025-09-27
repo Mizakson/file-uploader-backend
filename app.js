@@ -11,20 +11,14 @@ const { rateLimit } = require("express-rate-limit")
 
 const configurePassport = require("./config/passport")
 
-const allowedOrigins = ["http://localhost:5173", "http://127.0.0.1:5173"]
-const isProduction = process.env.NODE_ENV === 'production'
+const allowedOrigin = "http://localhost:5173"
+const isSecure = (req) => {
+    return req.protocol === 'https' || req.get('x-forwarded-proto') === 'https';
+}
 
 const app = express()
 app.use(cors({
-    origin: (origin, callback) => {
-        if (!origin) return callback(null, true)
-
-        if (allowedOrigins.indexOf(origin) !== -1) {
-            callback(null, true)
-        } else {
-            callback(new Error(`Not allowed by CORS: ${origin}`))
-        }
-    },
+    origin: allowedOrigin,
     credentials: true,
     methods: ['GET', 'HEAD', 'PUT', 'PATCH', 'POST', 'DELETE'],
     allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With', 'Accept'],
@@ -49,8 +43,8 @@ app.use(
     session({
         cookie: {
             maxAge: 730 * 24 * 60 * 60 * 1000, // ms
-            secure: isProduction,
-            sameSite: isProduction ? 'none' : 'lax',
+            secure: isSecure,
+            sameSite: isSecure ? 'none' : 'lax',
         },
         secret: "lorem ipsum",
         resave: true,
