@@ -18,7 +18,14 @@ app.use(cors({
     origin: allowedOrigin,
     credentials: true,
     methods: 'GET,HEAD,PUT,PATCH,POST,DELETE',
+    allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With', 'Accept'],
 }))
+
+// app.use(function (req, res, next) {
+//     res.header("Access-Control-Allow-Origin", "*")
+//     res.header("Access-Control-Allow-Headers", "Origin, X-Requested-With, Content-Type, Accept")
+//     next()
+// })
 
 // rate limiter fix
 app.set('trust proxy', 1)
