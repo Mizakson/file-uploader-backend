@@ -11,24 +11,14 @@ const { rateLimit } = require("express-rate-limit")
 
 const configurePassport = require("./config/passport")
 
-const allowedOrigin = "http://localhost:5173"
-const isSecure = (req) => {
-    return req.protocol === 'https' || req.get('x-forwarded-proto') === 'https';
-}
-
 const app = express()
-app.use(cors({
-    origin: allowedOrigin,
-    credentials: true,
-    methods: ['GET', 'HEAD', 'PUT', 'PATCH', 'POST', 'DELETE'],
-    allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With', 'Accept'],
-}))
+app.use(cors())
 
-// app.use(function (req, res, next) {
-//     res.header("Access-Control-Allow-Origin", "*")
-//     res.header("Access-Control-Allow-Headers", "Origin, X-Requested-With, Content-Type, Accept")
-//     next()
-// })
+app.use(function (req, res, next) {
+    res.header("Access-Control-Allow-Origin", "*")
+    res.header("Access-Control-Allow-Headers", "Origin, X-Requested-With, Content-Type, Accept")
+    next()
+})
 
 // rate limiter fix
 app.set('trust proxy', 1)
