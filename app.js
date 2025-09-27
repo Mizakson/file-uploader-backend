@@ -11,12 +11,20 @@ const { rateLimit } = require("express-rate-limit")
 
 const configurePassport = require("./config/passport")
 
-const allowedOrigin = "http://localhost:5173"
+const allowedOrigins = ["http://localhost:5173", "http://127.0.0.1:5173"]
 const isProduction = process.env.NODE_ENV === 'production'
 
 const app = express()
 app.use(cors({
-    origin: allowedOrigin,
+    origin: (origin, callback) => {
+        if (!origin) return callback(null, true)
+
+        if (allowedOrigins.indexOf(origin) !== -1) {
+            callback(null, true)
+        } else {
+            callback(new Error(`Not allowed by CORS: ${origin}`))
+        }
+    },
     credentials: true,
     methods: ['GET', 'HEAD', 'PUT', 'PATCH', 'POST', 'DELETE'],
     allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With', 'Accept'],
