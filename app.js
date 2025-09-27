@@ -20,6 +20,9 @@ app.use(function (req, res, next) {
     next()
 })
 
+// rate limiter fix
+app.set('trust proxy', 1)
+
 const userRouter = require("./routes/userRouter")
 const contentRouter = require("./routes/contentRouter")
 const apiRouter = require("./routes/apiRouter")
