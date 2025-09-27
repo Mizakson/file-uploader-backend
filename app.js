@@ -13,7 +13,7 @@ const configurePassport = require("./config/passport")
 
 const app = express()
 
-const allowedOrigin = "http://localhost:5173"
+const allowedOrigin = "https://localhost:5173"
 
 app.use(cors({
     origin: allowedOrigin,
