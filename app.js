@@ -14,6 +14,9 @@ const configurePassport = require("./config/passport")
 const app = express()
 
 const allowedOrigin = "http://localhost:5173"
+const isSecure = (req) => {
+    return req.protocol === 'https' || req.get('x-forwarded-proto') === 'https';
+}
 
 app.use(cors({
     origin: allowedOrigin,
@@ -41,7 +44,7 @@ app.use(
         cookie: {
             maxAge: 730 * 24 * 60 * 60 * 1000, // ms
             secure: false,
-            sameSite: 'lax'
+            sameSite: isSecure ? 'none' : 'lax',
         },
         secret: process.env.SESSION_SECRET,
         resave: true,
