@@ -27,7 +27,7 @@ exports.getIndex = async (req, res, next) => {
         })
 
         if (!folders) {
-            return res.status(404).json({ message: "User not found." });
+            return res.status(404).json({ message: "User not found." })
         }
 
         res.status(200).json({
@@ -36,8 +36,8 @@ exports.getIndex = async (req, res, next) => {
             folders: folders.folders
         })
     } catch (error) {
-        console.error("Error in getIndex:", error);
-        next(error);
+        console.error("Error in getIndex:", error)
+        next(error)
     }
 }
 
@@ -53,10 +53,36 @@ exports.getLogin = (req, res) => {
     })
 }
 
-exports.postLogin = passport.authenticate("local", {
-    successRedirect: "/",
-    failureRedirect: "/",
-})
+exports.postLogin = (req, res, next) => {
+    passport.authenticate('local', (err, user, info) => {
+
+        if (err) {
+            console.error("Passport Strategy Error:", err)
+            return res.status(500).json({ message: 'An internal server error occurred during authentication.' })
+        }
+
+        if (!user) {
+            return res.status(401).json({ message: info.message || 'Invalid credentials.' })
+        }
+
+        req.logIn(user, (err) => {
+            if (err) {
+                console.error("Session Login Error:", err)
+                return res.status(500).json({ message: 'Failed to establish user session.' })
+            }
+
+            return res.status(200).json({
+                message: 'Login successful',
+
+                user: {
+                    id: user.id,
+                    username: user.name,
+
+                },
+            })
+        })
+    })(req, res, next)
+}
 
 exports.getLogout = (req, res, next) => {
     req.logout((err) => {
@@ -67,7 +93,7 @@ exports.getLogout = (req, res, next) => {
 
 
 exports.getAddFolder = (req, res) => {
-    res.status(200).json({ message: "Successfully fetched data for add folder view." });
+    res.status(200).json({ message: "Successfully fetched data for add folder view." })
 }
 
 exports.getUploadFile = async (req, res, next) => {
@@ -81,7 +107,7 @@ exports.getUploadFile = async (req, res, next) => {
         })
 
         if (!folder) {
-            return res.status(404).json({ message: "Folder not found." });
+            return res.status(404).json({ message: "Folder not found." })
         }
 
         res.status(200).json({
@@ -89,8 +115,8 @@ exports.getUploadFile = async (req, res, next) => {
             folder: folder
         })
     } catch (error) {
-        console.error("Error in getUploadFile:", error);
-        next(error);
+        console.error("Error in getUploadFile:", error)
+        next(error)
     }
 }
 
