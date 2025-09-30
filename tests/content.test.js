@@ -1,6 +1,7 @@
 // create mocks first, then import controller
 const mockSupabaseUpload = jest.fn()
 const mockSupabaseGetPublicUrl = jest.fn()
+const mockSupabaseRemove = jest.fn()
 const mockPrismaUserUpdate = jest.fn()
 const mockPrismaFolderUpdate = jest.fn()
 const mockPrismaFolderFindFirst = jest.fn()
@@ -31,9 +32,10 @@ jest.mock('@supabase/supabase-js', () => ({
             from: jest.fn(() => ({
                 upload: mockSupabaseUpload,
                 getPublicUrl: mockSupabaseGetPublicUrl,
-            })),
-        },
-    })),
+                remove: mockSupabaseRemove,
+            }))
+        }
+    }))
 }))
 
 jest.mock('multer', () => {
@@ -91,6 +93,10 @@ describe('contentController', () => {
     })
 
     describe('uploadFile', () => {
+        beforeEach(() => {
+            mockPrismaFolderFindFirst.mockResolvedValue({ id: 'folder-123', userId: 'test-user-id', name: 'Test Folder' });
+        })
+
         test('should upload a file and redirect on success', async () => {
             mockRequest.params.folderId = 'folder-123'
             mockSupabaseUpload.mockResolvedValue({
@@ -125,6 +131,9 @@ describe('contentController', () => {
         })
 
         test('should send 400 status if no file is received', async () => {
+
+            mockPrismaFolderFindFirst.mockClear()
+
             mockRequest.file = undefined
 
             await contentController.uploadFile(mockRequest, mockResponse, mockNext)
@@ -156,6 +165,8 @@ describe('contentController', () => {
         })
 
         test('should send 500 status if file data is not accessible', async () => {
+            mockRequest.params.folderId = 'folder-123'
+            // missing buffer/path 
             mockRequest.file = {
                 originalname: 'test.txt',
                 mimetype: 'text/plain',
@@ -176,6 +187,7 @@ describe('contentController', () => {
             await contentController.uploadFile(mockRequest, mockResponse, mockNext)
 
             expect(mockNext).toHaveBeenCalledWith(mockError)
+            expect(mockResponse.json).not.toHaveBeenCalled()
         })
     })
 
@@ -222,7 +234,7 @@ describe('contentController', () => {
             await contentController.getEditFolder(mockRequest, mockResponse, mockNext)
 
             expect(mockPrismaFolderFindFirst).toHaveBeenCalledWith({
-                where: { id: 'folder-456' }
+                where: { id: 'folder-456', userId: 'test-user-id' }
             })
             expect(mockResponse.status).toHaveBeenCalledWith(200)
             expect(mockResponse.json).toHaveBeenCalledWith({
@@ -239,7 +251,7 @@ describe('contentController', () => {
 
             expect(mockPrismaFolderFindFirst).toHaveBeenCalled()
             expect(mockResponse.status).toHaveBeenCalledWith(404)
-            expect(mockResponse.json).toHaveBeenCalledWith({ message: 'Folder not found.' })
+            expect(mockResponse.json).toHaveBeenCalledWith({ message: 'Folder not found or access denied.' })
         })
 
         test('should call next with an error if prisma fails', async () => {
@@ -255,7 +267,7 @@ describe('contentController', () => {
     })
 
     describe('postEditFolder', () => {
-        test('should update folder name and send 302 status on success', async () => {
+        test('should update folder name and send 200 status on success', async () => {
             mockRequest.params.folderId = 'folder-456'
             mockRequest.body.editFolder = 'Updated Folder Name'
             mockPrismaFolderUpdate.mockResolvedValue({})
@@ -263,10 +275,10 @@ describe('contentController', () => {
             await contentController.postEditFolder(mockRequest, mockResponse, mockNext)
 
             expect(mockPrismaFolderUpdate).toHaveBeenCalledWith({
-                where: { id: 'folder-456' },
+                where: { id: 'folder-456', userId: 'test-user-id' },
                 data: { name: 'Updated Folder Name' }
             })
-            expect(mockResponse.status).toHaveBeenCalledWith(302)
+            expect(mockResponse.status).toHaveBeenCalledWith(200)
             expect(mockResponse.json).toHaveBeenCalledWith({
                 message: 'Folder updated successfully',
                 data: 'Updated Folder Name'
@@ -276,6 +288,7 @@ describe('contentController', () => {
         test('should call next with an error if prisma fails', async () => {
             mockRequest.params.folderId = 'folder-456'
             const mockError = new Error('Prisma update failed')
+            mockError.code = 'P2000'
             mockPrismaFolderUpdate.mockRejectedValue(mockError)
 
             await contentController.postEditFolder(mockRequest, mockResponse, mockNext)
@@ -283,19 +296,29 @@ describe('contentController', () => {
             expect(mockNext).toHaveBeenCalledWith(mockError)
             expect(mockResponse.json).not.toHaveBeenCalled()
         })
+
+        test('should send 404 status if folder is not found by prisma', async () => {
+            mockRequest.params.folderId = 'folder-456'
+            mockPrismaFolderUpdate.mockRejectedValue({ code: 'P2025', message: 'Not Found' })
+
+            await contentController.postEditFolder(mockRequest, mockResponse, mockNext)
+
+            expect(mockResponse.status).toHaveBeenCalledWith(404)
+            expect(mockResponse.json).toHaveBeenCalledWith({ message: 'Folder not found or access denied.' })
+        })
     })
 
     describe('deleteFolder', () => {
-        test('should delete a folder and send 204 status on success', async () => {
+        test('should delete a folder and send 200 status on success', async () => {
             mockRequest.params.folderId = 'folder-456'
             mockPrismaFolderDelete.mockResolvedValue({})
 
             await contentController.deleteFolder(mockRequest, mockResponse, mockNext)
 
             expect(mockPrismaFolderDelete).toHaveBeenCalledWith({
-                where: { id: 'folder-456' }
+                where: { id: 'folder-456', userId: 'test-user-id' }
             })
-            expect(mockResponse.status).toHaveBeenCalledWith(204)
+            expect(mockResponse.status).toHaveBeenCalledWith(200)
             expect(mockResponse.json).toHaveBeenCalledWith({
                 message: 'Folder deleted successfully'
             })
@@ -310,6 +333,16 @@ describe('contentController', () => {
 
             expect(mockNext).toHaveBeenCalledWith(mockError)
             expect(mockResponse.json).not.toHaveBeenCalled()
+        })
+
+        test('should send 404 status if folder is not found by prisma', async () => {
+            mockRequest.params.folderId = 'folder-456'
+            mockPrismaFolderDelete.mockRejectedValue({ code: 'P2025', message: 'Not Found' })
+
+            await contentController.deleteFolder(mockRequest, mockResponse, mockNext)
+
+            expect(mockResponse.status).toHaveBeenCalledWith(404)
+            expect(mockResponse.json).toHaveBeenCalledWith({ message: 'Folder not found or access denied.' })
         })
     })
 
@@ -326,7 +359,7 @@ describe('contentController', () => {
             await contentController.getFiles(mockRequest, mockResponse, mockNext)
 
             expect(mockPrismaFolderFindFirst).toHaveBeenCalledWith({
-                where: { id: 'folder-456' },
+                where: { id: 'folder-456', userId: 'test-user-id' },
                 include: { files: true }
             })
 
@@ -363,19 +396,38 @@ describe('contentController', () => {
     describe('getFileDetails', () => {
         test('should render file-details with file data', async () => {
             mockRequest.params.fileId = 'file-789'
-            const mockFile = { id: 'file-789', name: 'details.txt', updloadedAt: new Date() }
+            const mockDate = new Date()
+
+            const mockFile = {
+                id: 'file-789',
+                name: 'details.txt',
+                updloadedAt: mockDate,
+                folderId: 'folder-123',
+                folder: { userId: 'test-user-id' }
+            }
+
+            const expectedFilePayload = {
+                id: 'file-789',
+                name: 'details.txt',
+                updloadedAt: mockDate,
+                folderId: 'folder-123'
+            }
+
             mockPrismaFileFindFirst.mockResolvedValue(mockFile)
 
             await contentController.getFileDetails(mockRequest, mockResponse, mockNext)
 
-            expect(mockPrismaFileFindFirst).toHaveBeenCalledWith({
-                where: { id: 'file-789' }
-            })
+            expect(mockPrismaFileFindFirst).toHaveBeenCalledWith(expect.objectContaining({
+                where: {
+                    id: 'file-789',
+                    folder: { userId: 'test-user-id' }
+                }
+            }))
 
             expect(mockResponse.status).toHaveBeenCalledWith(200)
             expect(mockResponse.json).toHaveBeenCalledWith({
-                file: mockFile,
-                date: JSON.stringify(mockFile.updloadedAt)
+                file: expectedFilePayload,
+                date: mockDate
             })
         })
 
@@ -387,7 +439,7 @@ describe('contentController', () => {
 
             expect(mockPrismaFileFindFirst).toHaveBeenCalled()
             expect(mockResponse.status).toHaveBeenCalledWith(404)
-            expect(mockResponse.json).toHaveBeenCalledWith({ message: 'File not found.' })
+            expect(mockResponse.json).toHaveBeenCalledWith({ message: 'File not found or access denied.' })
         })
 
         test('should call next with an error if prisma fails', async () => {
@@ -403,21 +455,28 @@ describe('contentController', () => {
     })
 
     describe('deleteFile', () => {
-        test('should delete a file and send 304 status on success', async () => {
+        test('should delete a file and send 200 status on success', async () => {
             mockRequest.params.fileId = 'file-789'
+            mockPrismaFileFindFirst.mockResolvedValue({ id: 'file-789', name: 'file-to-delete.txt' })
+
+            mockSupabaseRemove.mockResolvedValue({ data: {}, error: null })
             mockPrismaFileDelete.mockResolvedValue({})
 
             await contentController.deleteFile(mockRequest, mockResponse, mockNext)
 
+            expect(mockPrismaFileFindFirst).toHaveBeenCalled()
             expect(mockPrismaFileDelete).toHaveBeenCalledWith({
                 where: { id: 'file-789' }
             })
-            expect(mockResponse.status).toHaveBeenCalledWith(304)
+
+            expect(mockSupabaseRemove).toHaveBeenCalledWith(['file-to-delete.txt'])
+            expect(mockResponse.status).toHaveBeenCalledWith(200)
             expect(mockResponse.json).toHaveBeenCalledWith({ message: 'File deleted successfully' })
         })
 
-        test('should call next with an error if prisma fails', async () => {
+        test('should call next with an error if prisma delete fails after find', async () => {
             mockRequest.params.fileId = 'file-789'
+            mockPrismaFileFindFirst.mockResolvedValue({ id: 'file-789', name: 'file-to-delete.txt' })
             const mockError = new Error('Prisma delete failed')
             mockPrismaFileDelete.mockRejectedValue(mockError)
 
@@ -425,6 +484,28 @@ describe('contentController', () => {
 
             expect(mockNext).toHaveBeenCalledWith(mockError)
             expect(mockResponse.json).not.toHaveBeenCalled()
+        })
+
+        test('should send 404 status if file is not found by findFirst', async () => {
+            mockRequest.params.fileId = 'file-789'
+            mockPrismaFileFindFirst.mockResolvedValue(null)
+
+            await contentController.deleteFile(mockRequest, mockResponse, mockNext)
+
+            expect(mockPrismaFileFindFirst).toHaveBeenCalled()
+            expect(mockResponse.status).toHaveBeenCalledWith(404)
+            expect(mockResponse.json).toHaveBeenCalledWith({ message: 'File not found or access denied.' })
+        })
+
+        test('should send 404 status if prisma delete fails with P2025', async () => {
+            mockRequest.params.fileId = 'file-789'
+            mockPrismaFileFindFirst.mockResolvedValue({ id: 'file-789', name: 'file-to-delete.txt' }) // initial err
+            mockPrismaFileDelete.mockRejectedValue({ code: 'P2025', message: 'Record not found' }) // delete err
+
+            await contentController.deleteFile(mockRequest, mockResponse, mockNext)
+
+            expect(mockResponse.status).toHaveBeenCalledWith(404)
+            expect(mockResponse.json).toHaveBeenCalledWith({ message: 'File not found in database.' })
         })
     })
 })
