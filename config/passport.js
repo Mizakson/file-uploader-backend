@@ -1,47 +1,36 @@
 const passport = require("passport")
 const { PrismaClient } = require("@prisma/client")
 const prisma = new PrismaClient()
-const localStrategy = require("passport-local").Strategy
-const bcrypt = require("bcryptjs")
 
+const jwt = require("jsonwebtoken")
+const JwtStrategy = require("passport-jwt").Strategy
+const ExtractJwt = require("passport-jwt").ExtractJwt
+const opts = {}
+
+opts.jwtFromRequest = ExtractJwt.fromAuthHeaderAsBearerToken()
+opts.secretOrKey = process.env.SESSION_SECRET || "loremipsum"
+
+// change this to jwtstrategy
 module.exports = function configurePassport() {
 
     passport.use(
-        new localStrategy(async (username, password, done) => {
+        new JwtStrategy(opts, async (jwt_payload, done) => {
             try {
                 const user = await prisma.user.findUnique({
                     where: {
-                        name: username
+                        id: jwt_payload.id
                     }
                 })
 
-                if (!user) return done(null, false, { message: "Incorrect username..." })
-
-                const match = await bcrypt.compare(password, user.password)
-                if (!match) return done(null, false, { message: "Incorrect password..." })
-
-                return done(null, user)
+                if (user) {
+                    return done(null, user)
+                } else {
+                    return done(null, false)
+                }
             } catch (err) {
-                return done(err)
+                return done(err, false)
             }
         })
     )
-
-    passport.serializeUser((user, done) => {
-        done(null, user.id)
-    })
-
-    passport.deserializeUser(async (id, done) => {
-        try {
-            const user = await prisma.user.findUnique({
-                where: {
-                    id: id
-                }
-            })
-            done(null, user)
-        } catch (err) {
-            done(err)
-        }
-    })
 
 }
