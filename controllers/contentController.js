@@ -15,11 +15,21 @@ exports.uploadMiddleware = upload.single("newFile")
 exports.uploadFile = async function (req, res, next) {
     const fileInfo = req.file
     const folderId = req.params.folderId
+    const userId = req.user.id
 
     if (!fileInfo) {
         console.error('No file received from Multer.')
         return res.status(400).json({ message: "No file data received." });
     }
+
+    const folder = await prisma.folder.findFirst({
+        where: {
+            id: folderId,
+            userId: userId
+        }
+    })
+
+    if (!folder) return res.status(403).json({ message: "Access denied. Folder not found or does not belong to user." })
 
     let fileBuffer
     if (fileInfo.buffer) {
@@ -105,6 +115,7 @@ exports.addFolder = async function (req, res, next) {
     try {
         const { newFolder } = req.body
         const { id } = req.user
+
         const addFolder = await prisma.user.update({
             where: {
                 id: id
@@ -131,16 +142,18 @@ exports.addFolder = async function (req, res, next) {
 
 exports.getEditFolder = async (req, res, next) => {
     const folderId = req.params.folderId
+    const userId = req.user.id
 
     try {
         const folder = await prisma.folder.findFirst({
             where: {
-                id: folderId
+                id: folderId,
+                userId: userId
             }
         })
 
         if (!folder) {
-            return res.status(404).json({ message: "Folder not found." });
+            return res.status(404).json({ message: "Folder not found or access denied." });
         }
 
         res.status(200).json({
@@ -156,21 +169,27 @@ exports.getEditFolder = async (req, res, next) => {
 exports.postEditFolder = async (req, res, next) => {
     const folderId = req.params.folderId
     const newName = req.body.editFolder
+    const userId = req.user.id
 
     try {
         const updateName = await prisma.folder.update({
             where: {
-                id: folderId
+                id: folderId,
+                userId: userId
             },
             data: {
                 name: newName
             }
         })
-        res.status(302).json({
+        res.status(200).json({
             message: 'Folder updated successfully',
             data: newName
         })
     } catch (error) {
+        if (error.code === "P2025") {
+            return res.status(404).json({ message: "Folder not found or access denied." })
+        }
+
         console.error("Error in postEditFolder:", error)
         next(error)
     }
@@ -178,15 +197,21 @@ exports.postEditFolder = async (req, res, next) => {
 
 exports.deleteFolder = async (req, res, next) => {
     const folderId = req.params.folderId
+    const userId = req.user.id
 
     try {
         const deleteFolder = await prisma.folder.delete({
             where: {
-                id: folderId
+                id: folderId,
+                userId: userId
             }
         })
-        res.status(204).json({ message: 'Folder deleted successfully' })
+        res.status(200).json({ message: 'Folder deleted successfully' })
     } catch (error) {
+        if (error.code === 'P2025') {
+            return res.status(404).json({ message: "Folder not found or access denied." });
+        }
+
         console.error("Error in deleteFolder:", error)
         next(error)
     }
@@ -194,11 +219,13 @@ exports.deleteFolder = async (req, res, next) => {
 
 exports.getFiles = async (req, res, next) => {
     const folderId = req.params.folderId
+    const userId = req.user.id
 
     try {
         const folder = await prisma.folder.findFirst({
             where: {
-                id: folderId
+                id: folderId,
+                userId: userId
             },
             include: {
                 files: true
@@ -221,21 +248,33 @@ exports.getFiles = async (req, res, next) => {
 
 exports.getFileDetails = async (req, res, next) => {
     const fileId = req.params.fileId
+    const userId = req.user.id
 
     try {
         const file = await prisma.file.findFirst({
             where: {
-                id: fileId
+                id: fileId,
+                folder: {
+                    userId: userId
+                }
+            }, include: {
+                folder: {
+                    select: {
+                        userId: true
+                    }
+                }
             }
         })
 
         if (!file) {
-            return res.status(404).json({ message: "File not found." });
+            return res.status(404).json({ message: "File not found or access denied." });
         }
+
+        delete file.folder
 
         res.status(200).json({
             file: file,
-            date: JSON.stringify(file.updloadedAt)
+            date: file.updloadedAt
         })
     } catch (error) {
         console.error("Error in getFileDetails:", error)
@@ -245,15 +284,42 @@ exports.getFileDetails = async (req, res, next) => {
 
 exports.deleteFile = async (req, res, next) => {
     const fileId = req.params.fileId
+    const userId = req.user.id
 
     try {
+        const fileToDelete = await prisma.file.findFirst({
+            where: {
+                id: fileId,
+                folder: {
+                    userId: userId
+                }
+            }, select: {
+                id: true,
+                name: true
+            }
+        })
+
+        if (!fileToDelete) {
+            return res.status(404).json({ message: "File not found or access denied." })
+        }
+
         const deleteFile = await prisma.file.delete({
             where: {
                 id: fileId
             }
         })
-        res.status(304).json({ message: 'File deleted successfully' })
+
+        const { error: deleteError } = await supabase.storage
+            .from('files')
+            .remove([fileToDelete.name])
+
+        if (deleteError) { console.error("Supabase deletion error: ", deleteError) }
+
+        res.status(200).json({ message: 'File deleted successfully' })
     } catch (error) {
+        if (error.code === 'P2025') {
+            return res.status(404).json({ message: "File not found in database." })
+        }
         console.error("Error in deleteFile:", error)
         next(error)
     }
