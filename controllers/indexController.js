@@ -5,6 +5,9 @@ const { Readable } = require('stream')
 const passport = require('passport')
 const prisma = require('../prisma/prisma')
 const { createClient } = require('@supabase/supabase-js')
+const bcrypt = require("bcryptjs")
+const jwt = require("jsonwebtoken")
+const SECRET_KEY = process.env.SESSION_SECRET || "loremipsum"
 
 const supabaseUrl = process.env.PROJECT_URL
 const supabaseKey = process.env.SUPABASE_API_KEY
@@ -12,9 +15,8 @@ const supabase = createClient(supabaseUrl, supabaseKey)
 
 
 exports.getIndex = async (req, res, next) => {
-    if (!req.isAuthenticated()) {
-        return res.status(401).json({ message: 'Unauthorized' })
-    }
+
+    const currentUser = req.user
 
     try {
         const folders = await prisma.user.findUnique({
@@ -32,7 +34,7 @@ exports.getIndex = async (req, res, next) => {
 
         res.status(200).json({
             message: 'User data retrieved successfully',
-            user: res.locals.currentUser,
+            user: { id: currentUser.id, name: currentUser.name },
             folders: folders.folders
         })
     } catch (error) {
@@ -43,52 +45,60 @@ exports.getIndex = async (req, res, next) => {
 
 exports.getSignUp = (req, res) => {
     res.status(200).json({
-        user: res.locals.currentUser,
+        message: "Ready for sign-up",
     })
 }
 
 exports.getLogin = (req, res) => {
     res.status(200).json({
-        user: res.locals.currentUser,
+        message: "Ready for login.",
     })
 }
 
-exports.postLogin = (req, res, next) => {
-    passport.authenticate('local', (err, user, info) => {
+exports.postLogin = async (req, res, next) => {
+    const { username, password } = req.body
 
-        if (err) {
-            console.error("Passport Strategy Error:", err)
-            return res.status(500).json({ message: 'An internal server error occurred during authentication.' })
-        }
+    try {
+        const user = await prisma.user.findUnique({
+            where: {
+                name: username
+            }
+        })
 
         if (!user) {
-            return res.status(401).json({ message: info.message || 'Invalid credentials.' })
+            return res.status(401).json({ message: "Invalid credentials." })
         }
 
-        req.logIn(user, (err) => {
-            if (err) {
-                console.error("Session Login Error:", err)
-                return res.status(500).json({ message: 'Failed to establish user session.' })
+        const match = bcrypt.compare(password, user.password)
+
+        if (!match) {
+            return res.status(401).json({ message: "Invalid credentials." })
+        }
+
+        const payload = {
+            id: user.id,
+            name: user.name,
+        }
+
+        const token = jwt.sign(payload, SECRET_KEY, { expiresIn: '1d' }) // 1 day token expiry
+
+        return res.status(200).json({
+            message: "Login successful",
+            token: "Bearer " + token,
+            user: {
+                id: user.id,
+                username: user.name
             }
-
-            return res.status(200).json({
-                message: 'Login successful',
-
-                user: {
-                    id: user.id,
-                    username: user.name,
-
-                },
-            })
         })
-    })(req, res, next)
+
+    } catch (err) {
+        console.error("Login error: ", err)
+        next(err)
+    }
 }
 
 exports.getLogout = (req, res, next) => {
-    req.logout((err) => {
-        if (err) return next(err)
-        res.status(200).json({ message: 'Logged out successfully' })
-    })
+    res.status(200).json({ message: 'Logged out successfully (Please delete token client-side)' })
 }
 
 
