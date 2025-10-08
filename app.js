@@ -13,8 +13,9 @@ const app = express()
 const allowedOrigin = "https://localhost:5173"
 
 app.use(cors({
-    origin: allowedOrigin,
+    origin: '*',
     credentials: true,
+    optionsSuccessStatus: 200,
 }))
 
 // app.use(function (req, res, next) {
