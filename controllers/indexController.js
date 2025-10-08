@@ -7,7 +7,7 @@ const prisma = require('../prisma/prisma')
 const { createClient } = require('@supabase/supabase-js')
 const bcrypt = require("bcryptjs")
 const jwt = require("jsonwebtoken")
-const SECRET_KEY = process.env.SESSION_SECRET || "loremipsum"
+const JWT_SECRET = process.env.JWT_SECRET || "loremipsum"
 
 const supabaseUrl = process.env.PROJECT_URL
 const supabaseKey = process.env.SUPABASE_API_KEY
@@ -17,6 +17,10 @@ const supabase = createClient(supabaseUrl, supabaseKey)
 exports.getIndex = async (req, res, next) => {
 
     const currentUser = req.user
+
+    if (!currentUser || !currentUser.id) {
+        return res.status(401).json({ message: "User not authenticated." })
+    }
 
     try {
         const folders = await prisma.user.findUnique({
@@ -80,7 +84,7 @@ exports.postLogin = async (req, res, next) => {
             name: user.name,
         }
 
-        const token = jwt.sign(payload, SECRET_KEY, { expiresIn: '1d' }) // 1 day token expiry
+        const token = jwt.sign(payload, JWT_SECRET, { expiresIn: '1d' }) // 1 day token expiry
 
         return res.status(200).json({
             message: "Login successful",
@@ -108,16 +112,18 @@ exports.getAddFolder = (req, res) => {
 
 exports.getUploadFile = async (req, res, next) => {
     const folderId = req.params.folderId
+    const userId = req.user.id
 
     try {
         const folder = await prisma.folder.findFirst({
             where: {
-                id: folderId
+                id: folderId,
+                userId: userId
             }
         })
 
         if (!folder) {
-            return res.status(404).json({ message: "Folder not found." })
+            return res.status(403).json({ message: "Folder not found or access denied" })
         }
 
         res.status(200).json({
@@ -133,11 +139,15 @@ exports.getUploadFile = async (req, res, next) => {
 exports.getDownloadFile = async (req, res, next) => {
     const fileId = req.params.fileId
     const bucketName = 'files'
+    const userId = req.user.id
 
     try {
         const file = await prisma.file.findUnique({
             where: {
-                id: fileId
+                id: fileId,
+                folder: {
+                    userId: userId
+                }
             },
             select: {
                 name: true,
@@ -146,7 +156,7 @@ exports.getDownloadFile = async (req, res, next) => {
         })
 
         if (!file) {
-            return res.status(404).json({ message: "File not found in our records." })
+            return res.status(403).json({ message: "File not found or access denied" })
         }
 
         const { data: signedUrlData, error: signedUrlError } = await supabase.storage
