@@ -3,19 +3,19 @@ const JWT_SECRET = process.env.JWT_SECRET || "loremipsum"
 const prisma = require('../prisma/prisma')
 
 const isAuth = async (req, res, next) => {
-    let token = null;
-    const authHeader = req.headers.authorization;
+    let token = null
+    const authHeader = req.headers.authorization
 
     if (authHeader) {
         if (authHeader.startsWith('Bearer ')) {
-            token = authHeader.split(' ')[1];
+            token = authHeader.split(' ')[1]
         } else {
-            token = authHeader;
+            token = authHeader
         }
     }
 
     if (!token) {
-        return res.status(401).json({ message: "Unauthorized: Token missing." });
+        return res.status(401).json({ message: "Unauthorized: Token missing." })
     }
 
     try {
