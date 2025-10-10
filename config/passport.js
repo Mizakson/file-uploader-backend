@@ -8,7 +8,8 @@ const ExtractJwt = require("passport-jwt").ExtractJwt
 const opts = {}
 
 opts.jwtFromRequest = ExtractJwt.fromAuthHeaderAsBearerToken()
-opts.secretOrKey = process.env.JWT_SECRET
+opts.secretOrKey = process.env.JWT_SECRET || "loremipsum"
+console.log('Verification Secret Check:', opts.secretOrKey)
 
 module.exports = function configurePassport() {
 
@@ -22,8 +23,10 @@ module.exports = function configurePassport() {
                 })
 
                 if (user) {
+                    console.log('User object passed to req.user:', user)
                     return done(null, user)
-                } else {
+                }
+                if (!user) {
                     return done(null, false)
                 }
             } catch (err) {

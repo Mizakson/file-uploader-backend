@@ -7,7 +7,7 @@ const prisma = require('../prisma/prisma')
 const { createClient } = require('@supabase/supabase-js')
 const bcrypt = require("bcryptjs")
 const jwt = require("jsonwebtoken")
-const JWT_SECRET = process.env.JWT_SECRET
+const JWT_SECRET = process.env.JWT_SECRET || "loremipsum"
 
 const supabaseUrl = process.env.PROJECT_URL
 const supabaseKey = process.env.SUPABASE_API_KEY
@@ -25,14 +25,14 @@ exports.getIndex = async (req, res, next) => {
     try {
         const folders = await prisma.user.findUnique({
             where: {
-                id: res.locals.currentUser.id
+                id: currentUser.id
             },
             include: {
                 folders: true,
             }
         })
 
-        if (!folders) {
+        if (!currentUser) {
             return res.status(404).json({ message: "User not found." })
         }
 
