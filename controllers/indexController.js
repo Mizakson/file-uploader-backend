@@ -123,7 +123,7 @@ exports.getUploadFile = async (req, res, next) => {
         })
 
         if (!folder) {
-            return res.status(403).json({ message: "Folder not found or access denied" })
+            return res.status(404).json({ message: "Folder not found or access denied." })
         }
 
         res.status(200).json({
@@ -156,7 +156,7 @@ exports.getDownloadFile = async (req, res, next) => {
         })
 
         if (!file) {
-            return res.status(403).json({ message: "File not found or access denied" })
+            return res.status(404).json({ message: "File not found or access denied." })
         }
 
         const { data: signedUrlData, error: signedUrlError } = await supabase.storage

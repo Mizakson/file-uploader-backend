@@ -229,7 +229,7 @@ describe('indexController (JWT refactor)', () => {
             await indexController.getUploadFile(mockRequest, mockResponse, mockNext)
 
             expect(prisma.folder.findFirst).toHaveBeenCalledWith({
-                where: { id: 'folder-123' },
+                where: { id: 'folder-123', userId: 'test-user-id' },
             })
             expect(mockResponse.status).toHaveBeenCalledWith(200)
             expect(mockResponse.json).toHaveBeenCalledWith({
@@ -246,7 +246,7 @@ describe('indexController (JWT refactor)', () => {
 
             expect(prisma.folder.findFirst).toHaveBeenCalled()
             expect(mockResponse.status).toHaveBeenCalledWith(404)
-            expect(mockResponse.json).toHaveBeenCalledWith({ message: 'Folder not found.' })
+            expect(mockResponse.json).toHaveBeenCalledWith({ message: 'Folder not found or access denied.' })
         })
 
         test('should call next with an error if prisma fails', async () => {
@@ -282,8 +282,8 @@ describe('indexController (JWT refactor)', () => {
             await indexController.getDownloadFile(mockRequest, mockResponse, mockNext)
 
             expect(prisma.file.findUnique).toHaveBeenCalledWith({
-                where: { id: 'file-456' },
-                select: { name: true, folderId: true },
+                where: { id: 'file-456', folder: { userId: 'test-user-id' } },
+                select: { name: true, folderId: true, },
             })
             expect(mockCreateSignedUrl).toHaveBeenCalledWith('test.pdf', 3600)
             expect(fetch).toHaveBeenCalledWith(mockSignedUrl)
@@ -300,7 +300,7 @@ describe('indexController (JWT refactor)', () => {
 
             expect(prisma.file.findUnique).toHaveBeenCalled()
             expect(mockResponse.status).toHaveBeenCalledWith(404)
-            expect(mockResponse.json).toHaveBeenCalledWith({ message: "File not found in our records." })
+            expect(mockResponse.json).toHaveBeenCalledWith({ message: "File not found or access denied." })
         })
 
         test('should send 500 status if an error occurs while generating the signed URL', async () => {
