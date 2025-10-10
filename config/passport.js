@@ -8,9 +8,8 @@ const ExtractJwt = require("passport-jwt").ExtractJwt
 const opts = {}
 
 opts.jwtFromRequest = ExtractJwt.fromAuthHeaderAsBearerToken()
-opts.secretOrKey = process.env.SESSION_SECRET || "loremipsum"
+opts.secretOrKey = process.env.JWT_SECRET
 
-// change this to jwtstrategy
 module.exports = function configurePassport() {
 
     passport.use(

@@ -7,7 +7,7 @@ const prisma = require('../prisma/prisma')
 const { createClient } = require('@supabase/supabase-js')
 const bcrypt = require("bcryptjs")
 const jwt = require("jsonwebtoken")
-const JWT_SECRET = process.env.JWT_SECRET || "loremipsum"
+const JWT_SECRET = process.env.JWT_SECRET
 
 const supabaseUrl = process.env.PROJECT_URL
 const supabaseKey = process.env.SUPABASE_API_KEY
