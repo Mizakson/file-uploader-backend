@@ -19,7 +19,7 @@ exports.uploadFile = async function (req, res, next) {
 
     if (!fileInfo) {
         console.error('No file received from Multer.')
-        return res.status(400).json({ message: "No file data received." });
+        return res.status(400).json({ message: "No file data received." })
     }
 
     const folder = await prisma.folder.findFirst({
@@ -39,11 +39,11 @@ exports.uploadFile = async function (req, res, next) {
             fileBuffer = fs.readFileSync(fileInfo.path)
         } catch (readError) {
             console.error('Error reading file from temporary path (disk storage):', readError)
-            return res.status(500).json({ message: "Failed to read the uploaded file from disk." });
+            return res.status(500).json({ message: "Failed to read the uploaded file from disk." })
         }
     } else {
         console.error('Multer did not provide a file buffer or path.')
-        return res.status(500).json({ message: "Internal server error: File data not accessible." });
+        return res.status(500).json({ message: "Internal server error: File data not accessible." })
     }
 
     try {
@@ -57,7 +57,7 @@ exports.uploadFile = async function (req, res, next) {
 
         if (supabaseUploadError) {
             console.error('Supabase upload error details:', supabaseUploadError)
-            return res.status(500).json({ message: "File upload to Supabase failed." });
+            return res.status(500).json({ message: "File upload to Supabase failed." })
         }
 
         let filePublicUrl = null
@@ -87,7 +87,7 @@ exports.uploadFile = async function (req, res, next) {
                     }
                 }
             }
-        });
+        })
         console.log('File info and public URL added to database for folder:', folderId)
 
         return res.status(201).json({
@@ -99,14 +99,14 @@ exports.uploadFile = async function (req, res, next) {
         })
 
     } catch (error) {
-        console.error('An unexpected error occurred during file upload:', error);
-        next(error);
+        console.error('An unexpected error occurred during file upload:', error)
+        next(error)
     } finally {
         if (fileInfo.path) {
             fs.unlink(fileInfo.path, (err) => {
                 if (err) console.error('Error deleting temporary file:', err)
                 else console.log('Temporary file deleted:', fileInfo.path)
-            });
+            })
         }
     }
 }
@@ -114,9 +114,16 @@ exports.uploadFile = async function (req, res, next) {
 exports.addFolder = async function (req, res, next) {
     try {
         const { newFolder } = req.body
-        const { id } = req.user
+        const { id, name } = req.user
 
-        const addFolder = await prisma.user.update({
+        console.log('User ID from token:', id)
+        console.log('Folder Name:', newFolder)
+
+        if (!id) {
+            return res.status(401).json({ error: 'User not authenticated or ID missing' })
+        }
+
+        const updatedUser = await prisma.user.update({
             where: {
                 id: id
             },
@@ -126,12 +133,26 @@ exports.addFolder = async function (req, res, next) {
                         name: newFolder,
                     }
                 }
+            },
+            select: {
+                id: true,
+                name: true,
+                folders: {
+                    where: { name: newFolder },
+                    select: { id: true, name: true }
+                }
             }
         })
 
+        if (!updatedUser) {
+            return res.status(404).json({ error: 'User not found' })
+        }
+
+        const createdFolder = updatedUser.folders[0]
+
         return res.status(201).json({
             message: 'Folder created successfully',
-            folder: newFolder
+            folder: createdFolder
         })
 
     } catch (error) {
@@ -153,7 +174,7 @@ exports.getEditFolder = async (req, res, next) => {
         })
 
         if (!folder) {
-            return res.status(404).json({ message: "Folder not found or access denied." });
+            return res.status(404).json({ message: "Folder not found or access denied." })
         }
 
         res.status(200).json({
@@ -209,7 +230,7 @@ exports.deleteFolder = async (req, res, next) => {
         res.status(200).json({ message: 'Folder deleted successfully' })
     } catch (error) {
         if (error.code === 'P2025') {
-            return res.status(404).json({ message: "Folder not found or access denied." });
+            return res.status(404).json({ message: "Folder not found or access denied." })
         }
 
         console.error("Error in deleteFolder:", error)
@@ -233,7 +254,7 @@ exports.getFiles = async (req, res, next) => {
         })
 
         if (!folder) {
-            return res.status(404).json({ message: "Folder not found." });
+            return res.status(404).json({ message: "Folder not found." })
         }
 
         res.status(200).json({
@@ -267,7 +288,7 @@ exports.getFileDetails = async (req, res, next) => {
         })
 
         if (!file) {
-            return res.status(404).json({ message: "File not found or access denied." });
+            return res.status(404).json({ message: "File not found or access denied." })
         }
 
         delete file.folder
