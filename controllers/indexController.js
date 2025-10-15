@@ -28,7 +28,11 @@ exports.getIndex = async (req, res, next) => {
                 id: currentUser.id
             },
             include: {
-                folders: true,
+                folders: {
+                    orderBy: {
+                        id: 'asc'
+                    }
+                }
             }
         })
 
