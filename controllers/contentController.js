@@ -259,7 +259,6 @@ exports.getFiles = async (req, res, next) => {
 
         res.status(200).json({
             folder: folder,
-            files: folder.files
         })
     } catch (error) {
         console.error("Error in getFiles:", error)
