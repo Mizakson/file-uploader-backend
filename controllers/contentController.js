@@ -21,6 +21,7 @@ async function generateSignedUrl(storagePath) {
 
     if (signedUrlError) {
         console.error('Error generating signed URL:', signedUrlError)
+        console.error('The storage path used was:', storagePath)
         return null
     }
     return signedUrlData?.signedUrl || null
@@ -124,6 +125,8 @@ exports.uploadFile = async function (req, res, next) {
 }
 
 exports.getSignedFileUrl = async function (req, res, next) {
+    console.log('[INFO] Entering getSignedFileUrl handler.')
+
     const fileId = req.params.fileId
     const userId = req.user.id
 

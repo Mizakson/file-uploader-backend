@@ -12,6 +12,6 @@ contentRouter.post("/:folderId/delete-folder", passport.authenticate('jwt', { se
 contentRouter.get("/folder/:folderId/files", passport.authenticate('jwt', { session: false }), contentController.getFiles)
 contentRouter.get("/files/:fileId", passport.authenticate('jwt', { session: false }), contentController.getFileDetails)
 contentRouter.post("/files/:folderId/:fileId/delete-file", passport.authenticate('jwt', { session: false }), contentController.deleteFile)
-contentRouter.get("files/:fileId/signed-url", passport.authenticate('jwt', { session: false }), contentController.getSignedFileUrl)
+contentRouter.get("/files/:folderId/:fileId/signed-url", passport.authenticate('jwt', { session: false }), contentController.getSignedFileUrl)
 
 module.exports = contentRouter
