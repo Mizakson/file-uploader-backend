@@ -12,6 +12,20 @@ const upload = multer({ storage: multer.memoryStorage() })
 
 exports.uploadMiddleware = upload.single("newFile")
 
+async function generateSignedUrl(storagePath) {
+    const { data: signedUrlData, error: signedUrlError } = await supabase.storage
+        .from('files')
+        .createSignedUrl(storagePath, 3600, {
+            download: true
+        })
+
+    if (signedUrlError) {
+        console.error('Error generating signed URL:', signedUrlError)
+        return null
+    }
+    return signedUrlData?.signedUrl || null
+}
+
 exports.uploadFile = async function (req, res, next) {
     const fileInfo = req.file
     const folderId = req.params.folderId
@@ -46,10 +60,12 @@ exports.uploadFile = async function (req, res, next) {
         return res.status(500).json({ message: "Internal server error: File data not accessible." })
     }
 
+    const storagePath = `${userId}/${folderId}/${fileInfo.originalname}`;
+
     try {
         const { data: supabaseData, error: supabaseUploadError } = await supabase.storage
             .from('files')
-            .upload(fileInfo.originalname, fileBuffer, {
+            .upload(storagePath, fileBuffer, {
                 contentType: fileInfo.mimetype,
                 upsert: false,
                 duplex: 'half'
@@ -60,17 +76,13 @@ exports.uploadFile = async function (req, res, next) {
             return res.status(500).json({ message: "File upload to Supabase failed." })
         }
 
-        let filePublicUrl = null
-        if (supabaseData && supabaseData.path) {
-            const { data: publicUrlData } = supabase.storage.from('files').getPublicUrl(supabaseData.path)
-            if (publicUrlData && publicUrlData.publicUrl) {
-                filePublicUrl = publicUrlData.publicUrl
-                console.log('Supabase public URL:', filePublicUrl)
-            } else {
-                console.warn('Could not retrieve public URL data from Supabase.')
-            }
-        } else {
-            console.warn('Supabase data or path not available after upload.')
+        let fileStoragePath = supabaseData.path
+        const fileSignedUrl = await generateSignedUrl(fileStoragePath)
+
+        if (!fileSignedUrl) {
+            return res.status(500).json({
+                message: "File uploaded successfully, but failed to generate a secure access link."
+            })
         }
 
         await prisma.folder.update({
@@ -83,18 +95,18 @@ exports.uploadFile = async function (req, res, next) {
                         name: fileInfo.originalname,
                         updloadedAt: new Date(),
                         size: Number(fileInfo.size),
-                        publicUrl: filePublicUrl
+                        publicUrl: fileStoragePath
                     }
                 }
             }
         })
-        console.log('File info and public URL added to database for folder:', folderId)
+        console.log('File info and storage path added to database for folder:', folderId)
 
         return res.status(201).json({
             message: 'File uploaded successfully',
             file: {
                 name: fileInfo.originalname,
-                publicUrl: filePublicUrl
+                signedUrl: fileSignedUrl
             }
         })
 
@@ -108,6 +120,46 @@ exports.uploadFile = async function (req, res, next) {
                 else console.log('Temporary file deleted:', fileInfo.path)
             })
         }
+    }
+}
+
+exports.getSignedFileUrl = async function (req, res, next) {
+    const fileId = req.params.fileId
+    const userId = req.user.id
+
+    try {
+        const file = await prisma.file.findUnique({
+            where: {
+                id: fileId,
+            },
+            include: {
+                folder: true
+            }
+        })
+
+        if (!file || file.folder.userId !== userId) {
+            return res.status(403).json({ message: "Access denied. File not found or does not belong to user." })
+        }
+
+        const storagePath = file.publicUrl
+
+        if (!storagePath) {
+            return res.status(404).json({ message: "File storage path not found." })
+        }
+
+        const signedUrl = await generateSignedUrl(storagePath)
+
+        if (!signedUrl) {
+            return res.status(500).json({ message: "Failed to generate signed URL for download." })
+        }
+
+        return res.json({
+            signedUrl: signedUrl
+        })
+
+    } catch (error) {
+        console.error('Error retrieving signed URL:', error)
+        next(error)
     }
 }
 
@@ -302,6 +354,7 @@ exports.getFileDetails = async (req, res, next) => {
     }
 }
 
+// not getting a proper deletion
 exports.deleteFile = async (req, res, next) => {
     const fileId = req.params.fileId
     const userId = req.user.id
