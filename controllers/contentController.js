@@ -60,7 +60,7 @@ exports.uploadFile = async function (req, res, next) {
         return res.status(500).json({ message: "Internal server error: File data not accessible." })
     }
 
-    const storagePath = `${userId}/${folderId}/${fileInfo.originalname}`;
+    const storagePath = `${userId}/${folderId}/${fileInfo.originalname}`
 
     try {
         const { data: supabaseData, error: supabaseUploadError } = await supabase.storage
@@ -354,10 +354,10 @@ exports.getFileDetails = async (req, res, next) => {
     }
 }
 
-// not getting a proper deletion
 exports.deleteFile = async (req, res, next) => {
     const fileId = req.params.fileId
     const userId = req.user.id
+    const folderId = req.params.folderId
 
     try {
         const fileToDelete = await prisma.file.findFirst({
@@ -376,17 +376,25 @@ exports.deleteFile = async (req, res, next) => {
             return res.status(404).json({ message: "File not found or access denied." })
         }
 
-        const deleteFile = await prisma.file.delete({
+        const storagePath = `${userId}/${folderId}/${fileToDelete.name}`
+
+        console.log(`[DEBUG] Attempting to delete file from Supabase at path: ${storagePath}`)
+
+        const { error: deleteError } = await supabase.storage
+            .from('files')
+            .remove([storagePath])
+
+
+        if (deleteError) {
+            console.error("Supabase deletion error: ", deleteError)
+            throw new Error(`Failed to delete file from storage: ${deleteError.message}. Check storage path: ${storagePath}`)
+        }
+
+        await prisma.file.delete({
             where: {
                 id: fileId
             }
         })
-
-        const { error: deleteError } = await supabase.storage
-            .from('files')
-            .remove([fileToDelete.name])
-
-        if (deleteError) { console.error("Supabase deletion error: ", deleteError) }
 
         res.status(200).json({ message: 'File deleted successfully' })
     } catch (error) {
