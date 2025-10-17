@@ -349,7 +349,9 @@ exports.getFileDetails = async (req, res, next) => {
 
         res.status(200).json({
             file: file,
-            date: file.updloadedAt
+            size: file.size,
+            date: file.updloadedAt,
+            name: file.name
         })
     } catch (error) {
         console.error("Error in getFileDetails:", error)
