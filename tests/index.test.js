@@ -152,7 +152,11 @@ describe('indexController (JWT refactor)', () => {
 
             expect(prisma.user.findUnique).toHaveBeenCalledWith({
                 where: { id: MOCK_USER.id },
-                include: { folders: true },
+                include: {
+                    folders: {
+                        orderBy: { id: 'asc' }
+                    }
+                },
             })
             expect(mockResponse.status).toHaveBeenCalledWith(200)
             expect(mockResponse.json).toHaveBeenCalledWith({
@@ -173,6 +177,8 @@ describe('indexController (JWT refactor)', () => {
 
         test('should send 404 status if user not found', async () => {
             prisma.user.findUnique.mockResolvedValue(null)
+
+            await indexController.getIndex(mockRequest, mockResponse, mockNext)
 
             await indexController.getIndex(mockRequest, mockResponse, mockNext)
 
@@ -285,9 +291,10 @@ describe('indexController (JWT refactor)', () => {
                 where: { id: 'file-456', folder: { userId: 'test-user-id' } },
                 select: { name: true, folderId: true, },
             })
+
             expect(mockCreateSignedUrl).toHaveBeenCalledWith('test.pdf', 3600)
             expect(fetch).toHaveBeenCalledWith(mockSignedUrl)
-            expect(mockSetHeader).toHaveBeenCalledWith('Content-Disposition', 'attachment filename="test.pdf"')
+            expect(mockSetHeader).toHaveBeenCalledWith('Content-Disposition', 'attachment; filename="test.pdf"')
             expect(require('stream').Readable.fromWeb).toHaveBeenCalledWith(mockWebReadableStream)
             expect(mockPipe).toHaveBeenCalledWith(mockResponse)
         })

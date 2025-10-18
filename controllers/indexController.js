@@ -36,7 +36,7 @@ exports.getIndex = async (req, res, next) => {
             }
         })
 
-        if (!currentUser) {
+        if (!folders) {
             return res.status(404).json({ message: "User not found." })
         }
 
@@ -185,7 +185,7 @@ exports.getDownloadFile = async (req, res, next) => {
         }
 
         // Content-Disposition header forces the download in the browser.
-        res.setHeader('Content-Disposition', `attachment filename="${file.name}"`)
+        res.setHeader('Content-Disposition', `attachment; filename="${file.name}"`)
 
         // convert Web ReadableStream to a Node.js Readable stream.
         const nodeStream = Readable.fromWeb(response.body)
