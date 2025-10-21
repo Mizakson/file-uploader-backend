@@ -12,21 +12,6 @@ const upload = multer({ storage: multer.memoryStorage() })
 
 exports.uploadMiddleware = upload.single("newFile")
 
-async function generateSignedUrl(storagePath) {
-    const { data: signedUrlData, error: signedUrlError } = await supabase.storage
-        .from('files')
-        .createSignedUrl(storagePath, 3600, {
-            download: true
-        })
-
-    if (signedUrlError) {
-        console.error('Error generating signed URL:', signedUrlError)
-        console.error('The storage path used was:', storagePath)
-        return null
-    }
-    return signedUrlData?.signedUrl || null
-}
-
 exports.uploadFile = async function (req, res, next) {
     const fileInfo = req.file
     const folderId = req.params.folderId
@@ -78,7 +63,22 @@ exports.uploadFile = async function (req, res, next) {
         }
 
         let fileStoragePath = supabaseData.path
-        const fileSignedUrl = await generateSignedUrl(fileStoragePath)
+
+        const { data: signedUrlData, error: signedUrlError } = await supabase.storage
+            .from('files')
+            .createSignedUrl(fileStoragePath, 3600, {
+                download: true
+            })
+
+        if (signedUrlError) {
+            console.error('Error generating signed URL:', signedUrlError)
+            console.error('The storage path used was:', fileStoragePath)
+            return res.status(500).json({
+                message: "File uploaded successfully, but failed to generate a secure access link."
+            })
+        }
+
+        const fileSignedUrl = signedUrlData?.signedUrl || null
 
         if (!fileSignedUrl) {
             return res.status(500).json({
@@ -125,10 +125,13 @@ exports.uploadFile = async function (req, res, next) {
 }
 
 exports.getSignedFileUrl = async function (req, res, next) {
-    console.log('[INFO] Entering getSignedFileUrl handler.')
+    // console.log('[INFO] Entering getSignedFileUrl handler.')
 
     const fileId = req.params.fileId
     const userId = req.user.id
+
+    const EXPIRY_TIME_IN_SECONDS = 3600
+    const BUCKET_NAME = 'files'
 
     try {
         const file = await prisma.file.findUnique({
@@ -136,7 +139,11 @@ exports.getSignedFileUrl = async function (req, res, next) {
                 id: fileId,
             },
             include: {
-                folder: true
+                folder: {
+                    select: {
+                        userId: true
+                    }
+                }
             }
         })
 
@@ -150,14 +157,22 @@ exports.getSignedFileUrl = async function (req, res, next) {
             return res.status(404).json({ message: "File storage path not found." })
         }
 
-        const signedUrl = await generateSignedUrl(storagePath)
+        const { data: signedUrlData, error: signedUrlError } = await supabase.storage
+            .from(BUCKET_NAME)
+            .createSignedUrl(storagePath, EXPIRY_TIME_IN_SECONDS, {
+                download: true
+            })
 
-        if (!signedUrl) {
-            return res.status(500).json({ message: "Failed to generate signed URL for download." })
+        if (signedUrlError) {
+            console.error('Supabase Error generating signed URL:', signedUrlError);
+            return res.status(500).json({
+                message: "Failed to generate signed URL for download.",
+                details: signedUrlError.message
+            })
         }
 
         return res.json({
-            signedUrl: signedUrl
+            signedUrl: signedUrlData.signedUrl
         })
 
     } catch (error) {
