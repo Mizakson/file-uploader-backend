@@ -99,7 +99,7 @@
   (Note: None of the environment variables should be shared publicly)
 
   ### Installation
-  1. Clone the backend repository. Here is a link to the [backend repository](https://github.com/Mizakson/file-uploader-backend)
+  1. Clone the backend repository
   ``` bash
   git clone https://github.com/Mizakson/file-uploader-backend.git
   cd file-uploader-backend
@@ -123,7 +123,7 @@
   The backend will be running at `http://localhost:3000`
 
 
-  5. Clone the frontend repository
+  5. Clone the frontend repository. Here is a link to the [frontend repository](https://github.com/Mizakson/file-uploader-frontend)
   ``` bash
     git clone https://github.com/Mizakson/file-uploader-frontend.git
     cd file-uploader-frontend
