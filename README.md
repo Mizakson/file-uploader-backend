@@ -1,4 +1,4 @@
-# file-uploader-backend
+## file-uploader-backend
 
 ## Odin Project NodeJS Course Project #5
 
@@ -14,15 +14,15 @@
 * [License](#license)
 
 ## Project Overview
-  A multi-page full-stack application built as part of The Odin Project's NodeJS course. It features session-based authentication, allowing users to securely manage their own files and folders. This app allows users to perform CRUD operations and utilizes a cloud-based storage solution for all user data.
+  A multi-page PERN full-stack application built as part of The Odin Project's NodeJS course. It features JWT-based authentication, allows users to perform CRUD operations and utilizes a cloud-based storage solution for all user data.
 
-  ## [Live Demo](file-uploader-aup0.onrender.com/)
-  ![alt text](./public/images/file-uploader-homepage.png "Home page image preview")
-
-  (Note: The live demo may experience a brief "cold start" due to hosting on a free service tier.)
+  ## [Live Demo](https://mizakson-file-uploader.netlify.app/)
+  ![alt text](./public/file-uploader-profile-page.png "Profile page image preview")
+  ![alt text](./public/file-uploader-folder-details-page.png "Folder details page image preview")
+  ![alt text](./public/file-uploader-file-details-page.png "File details page image preview")
 
 ## Features
-  * __User Authentication__: Secure, session-based authentication using Passport.js with a local strategy.
+  * __User Authentication__: Secure, JWT-based authentication using Passport.js with a local strategy.
 
   * __Account Management__: Allows users to create new accounts and log in securely.
 
@@ -35,7 +35,8 @@
   * __Cloud Storage__: Utilizes Supabase for reliable and scaleable file storage.
 
 ## Tech Stack
-  ### Backend
+
+  ### [Backend](https://github.com/Mizakson/file-uploader-backend)
   * __Node.js__: Server-side runtime environment.
 
   * __Express__: Web application framework for building the API and routing.
@@ -44,18 +45,28 @@
 
   * __Prisma ORM__: A modern database toolkit for type-safe database access.
 
+  * __Jest__: A JavaScript testing framework for unit and integration tests.
+
+  * __Supertest__: A library for testing HTTP requests and routes.
+
   ### Database & Storage
   * __Supabase__: A self-service backend platform used for both PostgreSQL database and cloud file storage.
 
   * __PostgreSQL__: The relational database used to store user and folder information.
 
   ### Frontend
-  * __EJS__ (Embedded JavaScript): A simple templating language for generating dynamic HTML.
+  * __React__: A Javascript library for building user interfaces.
 
-  ### Tests
-  * __Jest__: A JavaScript testing framework for unit and integration tests.
+  * __React Router__ DOM: For declarative routing within the application.
 
-  * __Supertest__: A library for testing HTTP requests and routes.
+  * __Vitest__: A unit test framework powered by Vite.
+
+  * __React Testing Library__: For effective testing of React components.
+
+  * __Prop-Types__: For runtime type checking for React props.
+
+  * __CSS__: For styling and layout.
+
 
   ## Setup and Installation
   To get a copy of this project up and running on your local machine for development and testing purposes, follow these steps:
@@ -67,6 +78,7 @@
   * [npm](https://www.npmjs.com/)
 
   You will also need an existing [Supabase](https://supabase.com/) project
+  
   
   ### Environment Variables
   Create a .env file in the root directory of the project.
@@ -83,19 +95,17 @@
   SUPABASE_URL="https://your-project-id.supabase.co"
   SUPABASE_SERVICE_KEY="your-supabase-service-role-key"
   
-  # Passport Session Secret
-  SESSION_SECRET="a_secret_key"
   ```
   (Note: None of the environment variables should be shared publicly)
 
   ### Installation
-  1. Clone the repository
+  1. Clone the backend repository. Here is a link to the [backend repository](https://github.com/Mizakson/file-uploader-backend)
   ``` bash
-  git clone https://github.com/Mizakson/file-uploader.git
-  cd file-uploader
+  git clone https://github.com/Mizakson/file-uploader-backend.git
+  cd file-uploader-backend
   ```
 
-  2. Install project dependencies
+  2. Install backend dependencies
   ``` bash
   npm install
   ```
@@ -110,12 +120,33 @@
   npm start
   ```
 
-  The application will be running at `http://localhost:3000`
+  The backend will be running at `http://localhost:3000`
+
+
+  5. Clone the frontend repository
+  ``` bash
+    git clone https://github.com/Mizakson/file-uploader-frontend.git
+    cd file-uploader-frontend
+  ```
+
+  6. Install frontend dependencies
+  ``` bash
+  npm install
+  ```
+
+  7. Run frontend development server
+  ``` bash
+  npm run dev
+  ```
+
+  The frontend will be running at `http://localhost:5173`
+
+  Now you will be able to access and use the application in a development setting after going to the frontend.
 
   ## Testing
-  To run the test suite, run the following command(s)
+  To run the backend test suite, run the following command(s)
   ``` bash 
-  # full test suite
+  # full backend test suite
   npm test
 
   # inidivual test file
@@ -125,18 +156,19 @@
   ## What I Learned
   This project was a fantastic opportunity to deepen my understanding of several core concepts in full-stack development, including:
   
-  * __Full-Stack Architecture__: Building and connecting a multi-layered application, from the frontend (EJS) to the backend (Express) and the database (PostgreSQL with Supabase).
+  * __Full-Stack Architecture__: Building and connecting a multi-layered application, from the frontend (React) to the backend (Express) and the database (PostgreSQL with Supabase).
 
-  * __Stateful Authentication__: Implementing and managing a session-based authentication system using Passport.js, a critical skill for building secure web applications.
+  * __JWT Authentication__: Implementing and managing a JWT-based authentication system using Passport.js.
 
-  * __ORM Usage__: Gaining hands-on experience with Prisma, which significantly simplified database interactions and migrations.
+  * __ORM Usage__: Gaining hands-on experience with Prisma
 
-  * __Cloud Services Integration__: Integrating a third-party cloud service (Supabase) for both database management and file storage, a common pattern in modern web development.
+  * __Cloud Services Integration__: Integrating a third-party cloud service (Supabase) for both database management and file storage.
 
   ## Future Enhancements
+  
   * __Drag-and-Drop__: Implement a more user-friendly interface for file uploads using drag-and-drop functionality.
 
-* __Nested Folders__: Add the ability to create folders within other folders for better organization.
+  * __Nested Folders__: Add the ability to create folders within other folders for better organization.
   
  * __UI/UX Improvement__: Enhance the visual design with a modern CSS framework like Tailwind CSS.
 
@@ -144,3 +176,4 @@
 
   ## License
   This project is licensed under the MIT License. See the `LICENSE` file for details.
+
